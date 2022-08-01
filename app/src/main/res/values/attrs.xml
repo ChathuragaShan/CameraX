@@ -1,0 +1,16 @@
+<resources>
+    <declare-styleable name="FullscreenAttrs">
+        <attr name="fullscreenBackgroundColor" format="color" />
+        <attr name="fullscreenTextColor" format="color" />
+    </declare-styleable>
+
+    <declare-styleable name="SelfieCutoutView">
+        <attr name="backgroundColor"/>
+        <attr name="circleRadius" format="dimension"/>
+        <attr name="cutoutMargin" format="dimension"/>
+        <attr name="backgroundDrawable" format="reference"/>
+        <attr name="backgroundDrawableColor" format="reference"/>
+        <attr name="backgroundDrawableHeight" format="dimension"/>
+        <attr name="backgroundDrawableMarginTop" format="dimension"/>
+    </declare-styleable>
+</resources>

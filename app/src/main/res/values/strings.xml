@@ -1,3 +1,24 @@
 <resources>
     <string name="app_name">CameraX</string>
+    <string name="selfie_scan_title">Take a selfie</string>
+    <string name="selfie_scan_description">Place your face in the circle and take a picture. Don’t worry, you look awesome :)</string>
+    <string name="selfie_type">Face front</string>
+    <string name="dummy_content">DUMMY CONTENT</string>
+
+    <string name="camera_id_find_error">Could not fine a back facing camera with basic requirement</string>
+    <string name="camera_access_required">Camera access is required to capture documents.</string>
+    <string name="camera_permission_not_available">Permission is not available. Requesting camera permission.</string>
+    <string name="camera_permission_available">Camera permission is available. Starting preview.</string>
+    <string name="camera_permission_granted">Camera permission was granted. Starting preview.</string>
+    <string name="camera_permission_denied">Camera permission request was denied.</string>
+    <string name="ok">Okay</string>
+
+    <string name="selfie_scan_result_title">Great shot!</string>
+    <string name="selfie_scan_result_description">Do you want to use this picture or try to take a better one?</string>
+    <string name="selfie_scan_invalid_result_title">Try again</string>
+    <string name="selfie_scan_invalid_result_description">We can’t use this image. Face should be clear</string>
+
+    <string name="btn_text_continue">Continue</string>
+    <string name="btn_text_try_again">Try Again</string>
+
 </resources>

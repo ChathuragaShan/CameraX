@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/selfie_capture_fragment">
+    <fragment
+        android:id="@+id/selfie_capture_fragment"
+        android:name="com.chathurangashan.camerax.SelfieCaptureFragment"
+        android:label="fragment_selfie_capture"
+        tools:layout="@layout/fragment_selfie_capture" >
+        <action
+            android:id="@+id/to_selfie_preview"
+            app:destination="@id/selfie_preview_fragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/selfie_preview_fragment"
+        android:name="com.chathurangashan.camerax.SelfiePreviewFragment"
+        android:label="fragment_sefie_pereview"
+        tools:layout="@layout/fragment_sefie_pereview" />
+</navigation>
