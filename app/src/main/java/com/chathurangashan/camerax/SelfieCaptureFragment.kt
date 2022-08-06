@@ -1,15 +1,20 @@
 package com.chathurangashan.camerax
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -18,11 +23,14 @@ import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.chathurangashan.camerax.databinding.FragmentSelfieCaptureBinding
 import com.google.android.material.snackbar.Snackbar
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
     private lateinit var viewBinding: FragmentSelfieCaptureBinding
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var imageCapture: ImageCapture
     private val navigationController: NavController by lazy {
         Navigation.findNavController(requireView())
     }
@@ -108,7 +116,8 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
     private fun onClickCameraFabButton() {
 
         viewBinding.cameraFabButton.setOnClickListener {
-            navigationController.navigate(R.id.to_selfie_preview)
+            //navigationController.navigate(R.id.to_selfie_preview)
+            takePhoto()
         }
     }
 
@@ -172,12 +181,14 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
                     it.setSurfaceProvider(viewBinding.cameraView.surfaceProvider)
                 }
 
+            imageCapture = ImageCapture.Builder().build()
+
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview
+                    this, cameraSelector, preview, imageCapture
                 )
 
             } catch (exc: Exception) {
@@ -188,9 +199,52 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
     }
 
+    private fun takePhoto() {
+
+        if(::imageCapture.isInitialized){
+
+            val imageCapture = imageCapture
+
+
+            val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+                .format(System.currentTimeMillis())
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+                }
+            }
+
+            val outputOptions = ImageCapture.OutputFileOptions
+                .Builder(requireContext().contentResolver,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    contentValues)
+                .build()
+
+            imageCapture.takePicture(
+                outputOptions,
+                ContextCompat.getMainExecutor(requireContext()),
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onError(exc: ImageCaptureException) {
+                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                    }
+
+                    override fun
+                            onImageSaved(output: ImageCapture.OutputFileResults){
+                        val msg = "Photo capture succeeded: ${output.savedUri}"
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, msg)
+                    }
+                }
+            )
+        }
+    }
+
     companion object {
 
         private val TAG = SelfieCaptureFragment::class.simpleName
+        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private val REQUIRED_PERMISSIONS =
             mutableListOf(
                 Manifest.permission.CAMERA
