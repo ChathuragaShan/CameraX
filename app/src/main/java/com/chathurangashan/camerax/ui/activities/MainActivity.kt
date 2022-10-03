@@ -1,12 +1,10 @@
-package com.chathurangashan.camerax
+package com.chathurangashan.camerax.ui.activities
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.navigation.ActivityNavigator
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.NavigationUI
+import com.chathurangashan.camerax.R
 import com.chathurangashan.camerax.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {

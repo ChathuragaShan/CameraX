@@ -1,4 +1,4 @@
-package com.chathurangashan.camerax
+package com.chathurangashan.camerax.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
+import com.chathurangashan.camerax.R
 
 /**
  * This class is responsible for creating view which has a transparent inner circle area

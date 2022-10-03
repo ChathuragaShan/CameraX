@@ -6,7 +6,7 @@
     app:startDestination="@id/selfie_capture_fragment">
     <fragment
         android:id="@+id/selfie_capture_fragment"
-        android:name="com.chathurangashan.camerax.SelfieCaptureFragment"
+        android:name="com.chathurangashan.camerax.ui.fragments.SelfieCaptureFragment"
         android:label="fragment_selfie_capture"
         tools:layout="@layout/fragment_selfie_capture" >
         <action
@@ -15,7 +15,7 @@
     </fragment>
     <fragment
         android:id="@+id/selfie_preview_fragment"
-        android:name="com.chathurangashan.camerax.SelfiePreviewFragment"
+        android:name="com.chathurangashan.camerax.ui.fragments.SelfiePreviewFragment"
         android:label="fragment_sefie_pereview"
         tools:layout="@layout/fragment_sefie_pereview" />
 </navigation>

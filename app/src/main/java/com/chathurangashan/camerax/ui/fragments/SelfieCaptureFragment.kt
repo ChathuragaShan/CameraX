@@ -1,36 +1,53 @@
-package com.chathurangashan.camerax
+package com.chathurangashan.camerax.ui.fragments
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
 import androidx.fragment.app.Fragment
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
+import com.chathurangashan.camerax.FaceDetectionOverlaySurfaceHolder
+import com.chathurangashan.camerax.R
+import com.chathurangashan.camerax.SelfieImageAnalyzer
 import com.chathurangashan.camerax.databinding.FragmentSelfieCaptureBinding
+import com.chathurangashan.camerax.interfaces.SelfieDetectListener
+import com.chathurangashan.camerax.waitForLayout
 import com.google.android.material.snackbar.Snackbar
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
     private lateinit var viewBinding: FragmentSelfieCaptureBinding
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
-    private lateinit var imageCapture: ImageCapture
+    private lateinit var cameraExecutor: ExecutorService
+    private lateinit var imageCaptureUseCase: ImageCapture
+    private lateinit var faceDetector: FaceDetector
+    private lateinit var faceDetectorOptions: FaceDetectorOptions
+    private lateinit var selfieDetectListener: SelfieDetectListener
+    private var isDrawingDetectedFaceBoundBox = false
+    private val overlaySurfaceHolder =  FaceDetectionOverlaySurfaceHolder(true)
     private val navigationController: NavController by lazy {
         Navigation.findNavController(requireView())
     }
@@ -41,6 +58,7 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
         viewBinding = FragmentSelfieCaptureBinding.bind(view)
 
         initialization()
+        onImageIsAnalyzed()
         onClickCameraFabButton()
     }
 
@@ -51,8 +69,7 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
             viewBinding.cameraCutoutView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
 
             val circleCutoutRadius = resources.getDimension(R.dimen.circle_cut_out_radius)
-            val marginFromCircleCutout =
-                resources.getDimension(R.dimen.content_margin_from_circle_cutout)
+            val marginFromCircleCutout = resources.getDimension(R.dimen.content_margin_from_circle_cutout)
             val marginToContent = circleCutoutRadius + marginFromCircleCutout
 
             val descriptionLayoutParams = viewBinding.descriptionTextView.layoutParams
@@ -68,12 +85,26 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
             viewBinding.dynamicalyAlineGroup.visibility = View.VISIBLE
         }
 
-        checkCameraPermission()
-
         viewBinding.cameraCutoutView.waitForLayout {
             cameraCutoutPivotX = viewBinding.cameraCutoutView.pivotX
             cameraCutoutPivotY = viewBinding.cameraCutoutView.pivotY
         }
+
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
+        faceDetectorOptions = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .build()
+
+        faceDetector = FaceDetection.getClient(faceDetectorOptions)
+
+        viewBinding.cameraOverlayView.setZOrderMediaOverlay(true)
+        val cameraOverlaySurfaceHolder = viewBinding.cameraOverlayView.holder
+        cameraOverlaySurfaceHolder.addCallback(overlaySurfaceHolder)
+        cameraOverlaySurfaceHolder.setFormat(PixelFormat.TRANSLUCENT)
+
+        checkCameraPermission()
 
         requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -116,7 +147,6 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
     private fun onClickCameraFabButton() {
 
         viewBinding.cameraFabButton.setOnClickListener {
-            //navigationController.navigate(R.id.to_selfie_preview)
             takePhoto()
         }
     }
@@ -167,6 +197,35 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
         }
     }
 
+    private fun onImageIsAnalyzed(){
+
+        selfieDetectListener = object : SelfieDetectListener {
+
+            override fun onDetectSelfie(selfieFace: Face,proxyImageSize: Size) {
+
+                overlaySurfaceHolder.analyzedImageSize = proxyImageSize
+
+                if(!isDrawingDetectedFaceBoundBox){
+                    isDrawingDetectedFaceBoundBox = true
+
+                    val boundingBox = selfieFace.boundingBox
+
+                    Log.d("SelfieCaptureFragment","(${boundingBox.top},${boundingBox.right},${boundingBox.bottom},${boundingBox.left}")
+
+                    overlaySurfaceHolder.objectBound = boundingBox
+                    viewBinding.cameraOverlayView.invalidate()
+                    isDrawingDetectedFaceBoundBox = false
+                }
+            }
+
+            override fun onDetectSelfieError(errorMessage: String) {
+                Log.d("SelfieCaptureFragment",errorMessage)
+            }
+
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
     private fun startCamera() {
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
@@ -175,21 +234,34 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            val preview = Preview.Builder()
+            val previewUseCase = Preview.Builder()
                 .build()
                 .also {
                     it.setSurfaceProvider(viewBinding.cameraView.surfaceProvider)
                 }
 
-            imageCapture = ImageCapture.Builder().build()
+            imageCaptureUseCase = ImageCapture.Builder().build()
+
+            val selfieImageAnalyzer = SelfieImageAnalyzer(faceDetector,selfieDetectListener)
+
+            val imageAnalyzerUseCase = ImageAnalysis.Builder()
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor, selfieImageAnalyzer)
+                }
 
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
+                    this, cameraSelector, previewUseCase, imageCaptureUseCase,imageAnalyzerUseCase
                 )
+
+                overlaySurfaceHolder.previewScreenSize =
+                    Size(viewBinding.cameraView.width, viewBinding.cameraView.height)
+
+                overlaySurfaceHolder.surfaceTop = viewBinding.cameraView.top
 
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -201,10 +273,9 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
     private fun takePhoto() {
 
-        if(::imageCapture.isInitialized){
+        if(::imageCaptureUseCase.isInitialized){
 
-            val imageCapture = imageCapture
-
+            val imageCapture = imageCaptureUseCase
 
             val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
                 .format(System.currentTimeMillis())
@@ -235,10 +306,16 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
                         val msg = "Photo capture succeeded: ${output.savedUri}"
                         Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                         Log.d(TAG, msg)
+                        navigationController.navigate(R.id.to_selfie_preview)
                     }
                 }
             )
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        cameraExecutor.shutdown()
     }
 
     companion object {

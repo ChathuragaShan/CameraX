@@ -1,10 +1,9 @@
-package com.chathurangashan.camerax
+package com.chathurangashan.camerax.ui.fragments
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import com.chathurangashan.camerax.R
 import com.chathurangashan.camerax.databinding.FragmentSefiePereviewBinding
 
 class SelfiePreviewFragment : Fragment(R.layout.fragment_sefie_pereview) {
