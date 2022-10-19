@@ -28,10 +28,7 @@ import com.chathurangashan.camerax.databinding.FragmentSelfieCaptureBinding
 import com.chathurangashan.camerax.interfaces.SelfieDetectListener
 import com.chathurangashan.camerax.waitForLayout
 import com.google.android.material.snackbar.Snackbar
-import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -46,7 +43,7 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
     private lateinit var faceDetector: FaceDetector
     private lateinit var faceDetectorOptions: FaceDetectorOptions
     private lateinit var selfieDetectListener: SelfieDetectListener
-    private var isDrawingDetectedFaceBoundBox = false
+    private var isDrawingDetectedFaceDetails = false
     private val overlaySurfaceHolder =  FaceDetectionOverlaySurfaceHolder(true)
     private val navigationController: NavController by lazy {
         Navigation.findNavController(requireView())
@@ -205,16 +202,27 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
 
                 overlaySurfaceHolder.analyzedImageSize = proxyImageSize
 
-                if(!isDrawingDetectedFaceBoundBox){
-                    isDrawingDetectedFaceBoundBox = true
+                if(!isDrawingDetectedFaceDetails){
+                    isDrawingDetectedFaceDetails = true
 
                     val boundingBox = selfieFace.boundingBox
+                    val leftEye = selfieFace.getLandmark(FaceLandmark.LEFT_EYE)
+                    val rightEye = selfieFace.getLandmark(FaceLandmark.RIGHT_EYE)
+                    val mouthLeft = selfieFace.getLandmark(FaceLandmark.MOUTH_LEFT)
+                    val mouthRight = selfieFace.getLandmark(FaceLandmark.MOUTH_RIGHT)
+                    val mouthBottom= selfieFace.getLandmark(FaceLandmark.MOUTH_BOTTOM)
 
-                    Log.d("SelfieCaptureFragment","(${boundingBox.top},${boundingBox.right},${boundingBox.bottom},${boundingBox.left}")
+                    Log.d("SelfieCaptureFragment","(${boundingBox.top},${boundingBox.right},${boundingBox.bottom},${boundingBox.left})")
 
                     overlaySurfaceHolder.objectBound = boundingBox
+                    overlaySurfaceHolder.leftEyePoint = leftEye?.position
+                    overlaySurfaceHolder.rightEyePoint = rightEye?.position
+                    overlaySurfaceHolder.mouthLeftPoint = mouthLeft?.position
+                    overlaySurfaceHolder.mouthRightPoint = mouthRight?.position
+                    overlaySurfaceHolder.mouthBottomPoint = mouthBottom?.position
+
                     viewBinding.cameraOverlayView.invalidate()
-                    isDrawingDetectedFaceBoundBox = false
+                    isDrawingDetectedFaceDetails = false
                 }
             }
 
@@ -258,9 +266,10 @@ class SelfieCaptureFragment : Fragment(R.layout.fragment_selfie_capture) {
                     this, cameraSelector, previewUseCase, imageCaptureUseCase,imageAnalyzerUseCase
                 )
 
-                overlaySurfaceHolder.previewScreenSize =
-                    Size(viewBinding.cameraView.width, viewBinding.cameraView.height)
+                val previewViewWidth = viewBinding.cameraView.width
+                val previewViewHeight = viewBinding.cameraView.height
 
+                overlaySurfaceHolder.previewScreenSize = Size(previewViewWidth, previewViewHeight)
                 overlaySurfaceHolder.surfaceTop = viewBinding.cameraView.top
 
             } catch (exc: Exception) {

@@ -5,6 +5,7 @@ import android.util.Log
 import android.util.Size
 import android.view.SurfaceHolder
 import com.chathurangashan.camerax.interfaces.ObjectInBoundCheck
+import com.google.mlkit.vision.face.FaceLandmark
 
 class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : SurfaceHolder.Callback {
 
@@ -17,6 +18,11 @@ class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : Surfac
 
     var safeAreaBound = RectF(0f, 0f, 0f, 0f)
     var objectBound: Rect = Rect(0, 0, 0, 0)
+    var leftEyePoint: PointF? = PointF(0f,0f)
+    var rightEyePoint: PointF? = PointF(0f,0f)
+    var mouthLeftPoint: PointF? = PointF(0f,0f)
+    var mouthRightPoint: PointF? = PointF(0f,0f)
+    var mouthBottomPoint: PointF? = PointF(0f,0f)
     var clearCanvas = false
 
     companion object {
@@ -48,7 +54,7 @@ class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : Surfac
 
         var running = false
 
-        private fun drawAdjustedPreviewSize(canvas: Canvas){
+        private fun drawAdjustedFaceBoundBox(canvas: Canvas){
 
             val myPaint = Paint()
             myPaint.color = Color.rgb(220, 249, 10)
@@ -62,8 +68,8 @@ class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : Surfac
 
                 val adjustedBoundRect = RectF()
                 adjustedBoundRect.top = (objectBound.top * verticalScaleFactor) + surfaceTop.toFloat()
-                adjustedBoundRect.left = objectBound.right * horizontalScaleFactor
-                adjustedBoundRect.right = objectBound.left * horizontalScaleFactor
+                adjustedBoundRect.left = objectBound.left * horizontalScaleFactor
+                adjustedBoundRect.right = objectBound.right * horizontalScaleFactor
                 adjustedBoundRect.bottom = (objectBound.bottom * verticalScaleFactor) + surfaceTop.toFloat()
 
                 val adjustedMirrorObjectBound = RectF(adjustedBoundRect)
@@ -80,6 +86,34 @@ class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : Surfac
             }
         }
 
+        private fun drawFaceLandMarkPoints(canvas: Canvas){
+
+            val myPaint = Paint()
+            myPaint.color = Color.rgb(225, 100, 10)
+            myPaint.strokeWidth = 5f
+            myPaint.style = Paint.Style.STROKE
+
+            if(analyzedImageSize.width != 0 && analyzedImageSize.height != 0) {
+
+                val horizontalScaleFactor = previewScreenSize.width / analyzedImageSize.width.toFloat()
+                val verticalScaleFactor = previewScreenSize.height / analyzedImageSize.height.toFloat()
+
+                leftEyePoint?.let {
+                    val adjustedLeftEyePointF = PointF()
+                    adjustedLeftEyePointF.x = it.x * horizontalScaleFactor
+                    adjustedLeftEyePointF.y = it.y * verticalScaleFactor + surfaceTop.toFloat()
+
+                    if(mirrorCoordinates){
+                        val originalX = adjustedLeftEyePointF.x
+                        adjustedLeftEyePointF.x = previewScreenSize.width - originalX
+                    }
+
+                    canvas.drawPoint(adjustedLeftEyePointF.x,adjustedLeftEyePointF.y,myPaint)
+                }
+            }
+
+        }
+
         override fun run() {
 
             while (running) {
@@ -92,7 +126,8 @@ class FaceDetectionOverlaySurfaceHolder(val mirrorCoordinates: Boolean) : Surfac
 
                         if (!clearCanvas) {
                             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-                            drawAdjustedPreviewSize(canvas)
+                            drawAdjustedFaceBoundBox(canvas)
+                            //drawFaceLandMarkPoints(canvas)
 
                         } else {
                             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
